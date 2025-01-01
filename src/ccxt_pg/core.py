@@ -1,11 +1,11 @@
 import psycopg
 from psycopg import sql
 
-def prepare_items_for_pg(imported_items):
+def prepare_items_for_pg(imported_items: list, client=None) -> list:
     """This function prepares CCXT order/trade items for an export to a PG database"""
 
     if type(imported_items) is not list:
-        items = [imported_items]
+        items: list = [imported_items]
     else:
         items = imported_items
 
@@ -13,44 +13,49 @@ def prepare_items_for_pg(imported_items):
 
     for item in items:
 
-        # Renaming order to order_id because of conflict in SQL
-        if 'order' in item:
-            item['order_id'] = item.pop('order')
+        # Will only create the custom columns for private data
 
-        # Integrating empty statement in case of nonexistent values
+        if client is not None:
 
-        item['fee_cost'] = None
-        item['fee_currency'] = None
-        item['usdt_value'] = None
-        item['asset_net_q'] = None
+            # Renaming order to order_id because of conflict in SQL
+            if 'order' in item:
+                item['order_id'] = item.pop('order')
 
-        if item['fee'] is not None:
-            item['fee_cost'] = item['fee']['cost']
-            item['fee_currency'] = item['fee']['currency']
-        for fee in item['fees']:
-            if float(fee['cost']) != 0:
-                item['fee_cost'] = fee['cost']
-                item['fee_currency'] = fee['currency']
-        # item['exchange'] = client.name
+            # Integrating empty statement in case of nonexistent values
 
-        # Generate usdt_value column
+            item['fee_cost'] = None
+            item['fee_currency'] = None
+            item['usdt_value'] = None
+            item['asset_net_q'] = None
 
-        if item['fee_currency'] != 'USDT':
-            item['usdt_value'] = item['cost']
-        elif item['side'] == 'buy':
-            item['usdt_value'] = item['cost'] + item['fee_cost']
-        else:
-            item['usdt_value'] = item['cost'] - item['fee_cost']
+            if item['fee'] is not None:
+                item['fee_cost'] = item['fee']['cost']
+                item['fee_currency'] = item['fee']['currency']
+            for fee in item['fees']:
+                if float(fee['cost']) != 0:
+                    item['fee_cost'] = fee['cost']
+                    item['fee_currency'] = fee['currency']
 
-        # Generate asset_net_q columns
+            item['exchange'] = client.name
 
-        if item['fee_currency'] != 'USDT':
-            if item['fee_cost'] is not None:
-                item['asset_net_q'] = item['amount'] - item['fee_cost']
+            # Generate usdt_value column
+
+            if item['fee_currency'] != 'USDT':
+                item['usdt_value'] = item['cost']
+            elif item['side'] == 'buy':
+                item['usdt_value'] = item['cost'] + item['fee_cost']
             else:
-                item['asset_net_q'] = None
-        else:
-            item['asset_net_q'] = item['amount']
+                item['usdt_value'] = item['cost'] - item['fee_cost']
+
+            # Generate asset_net_q columns
+
+            if item['fee_currency'] != 'USDT':
+                if item['fee_cost'] is not None:
+                    item['asset_net_q'] = item['amount'] - item['fee_cost']
+                else:
+                    item['asset_net_q'] = None
+            else:
+                item['asset_net_q'] = item['amount']
 
         # Flatten dicts and lists in order to export them to columns.
         flattened_item = dict_to_text(item)
