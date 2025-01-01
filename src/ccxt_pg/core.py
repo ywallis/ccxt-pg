@@ -1,3 +1,4 @@
+from utils.helpers import dict_to_text  
 import psycopg
 from psycopg import sql
 
@@ -62,17 +63,6 @@ def prepare_items_for_pg(imported_items: list, client=None) -> list:
         prepared_items.append(flattened_item)
 
     return prepared_items
-
-def dict_to_text(d):
-
-    def convert(i_value):
-        if isinstance(i_value, dict) or isinstance(i_value, list):
-            return str(i_value)  # Convert sub-dict to string
-        return i_value
-
-    for key, value in d.items():
-        d[key] = convert(value)
-    return d
 
 
 def retrieve_and_prepare_orders(client, ticker, start=None, end=None):
