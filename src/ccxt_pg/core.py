@@ -1,4 +1,4 @@
-from utils.helpers import dict_to_text  
+from ccxt_pg.utils.helpers import dict_to_text  
 import psycopg
 from psycopg import sql
 
@@ -14,13 +14,13 @@ def prepare_items_for_pg(imported_items: list, client=None) -> list:
 
     for item in items:
 
+        # Renaming order to order_id because of conflict in SQL
+        if 'order' in item:
+            item['order_id'] = item.pop('order')
+
         # Will only create the custom columns for private data
 
         if client is not None:
-
-            # Renaming order to order_id because of conflict in SQL
-            if 'order' in item:
-                item['order_id'] = item.pop('order')
 
             # Integrating empty statement in case of nonexistent values
 
@@ -87,7 +87,7 @@ def retrieve_and_prepare_trades(client, pair, start=None, end=None):
 
     return prepare_items_for_pg(client, trades)
 
-def export_to_sql(raw_ccxt_data, credentials, table):
+def export_to_sql(raw_ccxt_data, credentials, table, verbose=True):
 
     """Takes in a list of orders or trades in CCXT format, and a dict of PG credentials, and outputs the data to the attached DB."""
 
@@ -119,4 +119,5 @@ def export_to_sql(raw_ccxt_data, credentials, table):
             # Execute the insert for all rows
             cur.executemany(insert_query, values)
 
-        print(f"Data inserted successfully in {table} table!")
+        if verbose:
+            print(f"Data inserted successfully in {table} table!")
