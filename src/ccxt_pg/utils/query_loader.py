@@ -16,10 +16,11 @@ class QueryLoader:
         """Load all SQL queries from the query directory."""
 
         for query in self.query_dir.glob("*.sql"):
-            print(query.stem)
+            # print(query.stem)
             with open(query, "r") as f:
                 self.queries[query.stem] = f.read()
 
     def get_query(self, query_name):
         """Retrieve a query by its name."""
         return self.queries.get(query_name, None)
+
